@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data/models (uncomment if needed)
+# *.csv
+# *.pkl
+# *.h5
+# *.joblib
+# dataset/
+# models/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Screenshots
+Screenshot*.png
+
+# Large media
+*.mov
+*.mp4
+*.avi
+
+# Raw data files
+*.tsv
+*.tsv.tsv
+
