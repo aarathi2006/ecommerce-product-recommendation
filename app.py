@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 app = Flask(__name__)
 
 # ─────────────────────────────────────────────────────────────
-# STEP 1: Load data ONCE at startup (not on every request)
+# STEP 1: Load data ONCE at startup
 # ─────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,8 +17,15 @@ trending_products = pd.read_csv(os.path.join(BASE_DIR, "models", "trending_produ
 train_data = pd.read_csv(os.path.join(BASE_DIR, "models", "clean_data.csv"))
 
 # ─────────────────────────────────────────────────────────────
-# STEP 2: Compute TF-IDF matrix ONCE at startup
-# This is the heavy operation. Doing it per-request kills the worker.
+# STEP 2: MEMORY OPTIMISATION — keep only top 1000 products
+# This shrinks the cosine matrix from ~200MB to ~4MB
+# ─────────────────────────────────────────────────────────────
+if len(train_data) > 1000:
+    train_data = train_data.nlargest(1000, 'ReviewCount').reset_index(drop=True)
+    print(f"[startup] Truncated train_data to {len(train_data)} rows for memory")
+
+# ─────────────────────────────────────────────────────────────
+# STEP 3: Build TF-IDF matrix ONCE at startup
 # ─────────────────────────────────────────────────────────────
 print("[startup] Building TF-IDF matrix...")
 tfidf_vectorizer = TfidfVectorizer(stop_words='english')
@@ -26,15 +33,14 @@ tfidf_matrix = tfidf_vectorizer.fit_transform(train_data['Tags'])
 print(f"[startup] TF-IDF matrix shape: {tfidf_matrix.shape}")
 
 # ─────────────────────────────────────────────────────────────
-# STEP 3: Compute cosine similarity ONCE at startup
-# For 5,000 products this is a 5000x5000 matrix (~200MB).
-# Doing this once is fine. Doing it per-request is what caused the 502.
+# STEP 4: Compute cosine similarity ONCE at startup, using float32
+# float32 halves memory vs float64
 # ─────────────────────────────────────────────────────────────
 print("[startup] Computing cosine similarity...")
-cosine_sim_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+cosine_sim_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix).astype('float32')
 print(f"[startup] Cosine similarity matrix shape: {cosine_sim_matrix.shape}")
 
-# Pre-compute a lowercase name index for faster matching
+# Precompute lowercase name index for faster matching
 _name_lower = train_data['Name'].str.lower()
 print("[startup] Ready.")
 
@@ -73,7 +79,6 @@ def content_based_recommendations(item_name, top_n=10):
 
     item_index = item_matches.index[0]
 
-    # Use the pre-computed similarity matrix — just index into it
     similar_items = list(enumerate(cosine_sim_matrix[item_index]))
     similar_items = sorted(similar_items, key=lambda x: x[1], reverse=True)
     top_similar_items = similar_items[1:top_n + 1]
@@ -145,7 +150,7 @@ def recommendations():
         else:
             try:
                 nbr = int(nbr_raw)
-                nbr = max(1, min(nbr, 20))  # clamp between 1 and 20
+                nbr = max(1, min(nbr, 20))
             except (ValueError, TypeError):
                 nbr = 5
 
