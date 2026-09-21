@@ -2,7 +2,7 @@
 
 An end-to-end machine learning web application that recommends products to users based on **content similarity** and **collaborative rating patterns**. Built with Python, Flask, and Scikit-learn, deployed on Render.
 
-**Live demo:** https://your-deployment-link.com  
+**Live demo:** https://ecommerce-recommender-0zkb.onrender.com  
 **Author:** [Boddu Aarathi](https://github.com/aarathi2006)  
 **Stack:** Python 3.10 · Flask · Scikit-learn · Pandas · NumPy · Jinja2
 
